@@ -12,6 +12,10 @@ if (!file_exists($sqlFile)) {
 try {
     $sql = file_get_contents($sqlFile);
     
+    // Temporarily disable the primary key requirement for this session
+    // because phpMyAdmin dumps often create tables first and add primary keys later via ALTER TABLE.
+    $pdo->exec("SET SESSION sql_require_primary_key = 0;");
+    
     // Execute the SQL dump
     $pdo->exec($sql);
     
