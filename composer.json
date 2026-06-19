@@ -1,0 +1,13 @@
+{
+    "minimum-stability": "dev",
+    "repositories": [{
+        "name": "paystack",
+        "type": "vcs",
+        "url": "https://github.com/PaystackHQ/paystack-php"
+    }],
+    "require": {
+        "minishlink/web-push": "*",
+        "firebase/php-jwt": "dev-main",
+        "henryejemuta/php-vtpass-vtu": "dev-main"
+    }
+}
