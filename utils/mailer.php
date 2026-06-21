@@ -16,9 +16,9 @@ function sendEmail($to, $subject, $body)
         $mail->SMTPAuth   = true;
         $mail->Username   = 'mikec9613@gmail.com';
         $mail->Password   = 'iolpmbtjqpnmtfdj';
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = 587;
-        $mail->Timeout    = 10; // Fail after 10s instead of 60s default
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS; // SSL — more reliable on Render
+        $mail->Port       = 465;
+        $mail->Timeout    = 15;
         $mail->SMTPOptions = [
             'ssl' => [
                 'verify_peer'       => false,

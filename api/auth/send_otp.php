@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: application/json');
 require_once '../../config/db.php';
+require_once '../../utils/mailer.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -21,15 +22,12 @@ if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
 $otp_code   = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
 $expires_at = date('Y-m-d H:i:s', strtotime('+10 minutes'));
 
-// Store OTP in database FIRST (fast — before email is sent)
+// Save OTP to database first
 try {
     $stmt = $pdo->prepare("DELETE FROM otp_codes WHERE identifier = ?");
     $stmt->execute([$email]);
 
-    $stmt = $pdo->prepare("
-        INSERT INTO otp_codes (identifier, otp_code, expires_at)
-        VALUES (?, ?, ?)
-    ");
+    $stmt = $pdo->prepare("INSERT INTO otp_codes (identifier, otp_code, expires_at) VALUES (?, ?, ?)");
     $stmt->execute([$email, $otp_code, $expires_at]);
 } catch (PDOException $e) {
     http_response_code(500);
@@ -37,21 +35,7 @@ try {
     exit();
 }
 
-// ✅ Respond to client IMMEDIATELY (OTP is in DB — user can proceed)
-http_response_code(200);
-echo json_encode([
-    "success" => true,
-    "message" => "Verification code sent to " . $email,
-]);
-
-// Flush response so client receives it NOW (works on Render's PHP-FPM)
-if (function_exists('fastcgi_finish_request')) {
-    fastcgi_finish_request();
-}
-
-// === Send email AFTER responding to client ===
-require_once '../../utils/mailer.php';
-
+// Send email (synchronous — reliable on Render)
 $subject = "Your SendNaw Verification Code";
 $body = "
 <div style='font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;background:#f9f9f9;border-radius:12px;'>
@@ -70,5 +54,13 @@ $body = "
   <p style='color:#aaa;font-size:12px;text-align:center;'>The SendNaw Team</p>
 </div>";
 
-sendEmail($email, $subject, $body);
-error_log("Email OTP sent to: $email");
+$sent = sendEmail($email, $subject, $body);
+error_log("OTP email to $email: " . ($sent ? "SENT" : "FAILED"));
+
+// Always respond success if OTP is in DB (user can still receive it even if email is slow)
+http_response_code(200);
+echo json_encode([
+    "success" => true,
+    "message" => "Verification code sent to " . $email,
+    "email_sent" => $sent
+]);
