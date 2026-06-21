@@ -1,6 +1,6 @@
 <?php
+header('Content-Type: application/json');
 require_once '../../config/db.php';
-require_once '../../utils/mailer.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -21,39 +21,57 @@ if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
 $otp_code   = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
 $expires_at = date('Y-m-d H:i:s', strtotime('+10 minutes'));
 
-// Send OTP via Email
-$subject = "Your SendNaw Verification Code";
-$body = "<h3>Verification Code</h3>
-         <p>Your SendNaw verification code is: <strong>" . $otp_code . "</strong></p>
-         <p>It expires in 10 minutes. Do not share this code with anyone.</p>";
-
-$email_sent = sendEmail($email, $subject, $body);
-
-// Log result for debugging
-error_log("Email OTP Result for $email: " . ($email_sent ? "Sent" : "Failed"));
-
-// Store OTP in database
+// Store OTP in database FIRST (fast — before email is sent)
 try {
-    // Delete any existing OTP for this email
     $stmt = $pdo->prepare("DELETE FROM otp_codes WHERE identifier = ?");
     $stmt->execute([$email]);
 
-    // Insert new OTP
     $stmt = $pdo->prepare("
         INSERT INTO otp_codes (identifier, otp_code, expires_at)
         VALUES (?, ?, ?)
     ");
     $stmt->execute([$email, $otp_code, $expires_at]);
-    http_response_code(200);
-    echo json_encode([
-        "success" => true,
-        "message" => "Verification code sent to " . $email,
-        "status" => $email_sent ? "sent" : "failed"
-    ]);
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode([
-        "success" => false,
-        "message" => "Failed to store verification code"
-    ]);
+    echo json_encode(["success" => false, "message" => "Failed to store verification code"]);
+    exit();
 }
+
+// ✅ Respond to client IMMEDIATELY (OTP is in DB — user can proceed)
+http_response_code(200);
+echo json_encode([
+    "success" => true,
+    "message" => "Verification code sent to " . $email,
+]);
+
+// Flush response so client receives it NOW
+if (function_exists('fastcgi_finish_request')) {
+    fastcgi_finish_request(); // On Render/PHP-FPM, this sends response immediately
+} else {
+    ob_end_flush();
+    flush();
+}
+
+// === Send email AFTER responding to client ===
+require_once '../../utils/mailer.php';
+
+$subject = "Your SendNaw Verification Code";
+$body = "
+<div style='font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;background:#f9f9f9;border-radius:12px;'>
+  <div style='text-align:center;margin-bottom:24px;'>
+    <h2 style='color:#6f42c1;margin:0;'>SendNaw Verification</h2>
+  </div>
+  <p style='color:#333;font-size:15px;'>Hi there,</p>
+  <p style='color:#333;font-size:15px;'>Your one-time verification code is:</p>
+  <div style='text-align:center;margin:28px 0;'>
+    <span style='font-size:42px;font-weight:900;letter-spacing:12px;color:#6f42c1;background:#f0e6ff;padding:16px 28px;border-radius:12px;display:inline-block;'>
+      {$otp_code}
+    </span>
+  </div>
+  <p style='color:#666;font-size:13px;'>This code expires in <strong>10 minutes</strong>. Do not share it with anyone.</p>
+  <hr style='border:none;border-top:1px solid #eee;margin:24px 0;'>
+  <p style='color:#aaa;font-size:12px;text-align:center;'>The SendNaw Team</p>
+</div>";
+
+sendEmail($email, $subject, $body);
+error_log("Email OTP sent to: $email");

@@ -18,6 +18,14 @@ function sendEmail($to, $subject, $body)
         $mail->Password   = 'iolpmbtjqpnmtfdj';
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = 587;
+        $mail->Timeout    = 10; // Fail after 10s instead of 60s default
+        $mail->SMTPOptions = [
+            'ssl' => [
+                'verify_peer'       => false,
+                'verify_peer_name'  => false,
+                'allow_self_signed' => true,
+            ],
+        ];
         $mail->setFrom('noreply@sendnaw.com', 'SendNaw');
         $mail->addAddress($to);
         $mail->isHTML(true);
