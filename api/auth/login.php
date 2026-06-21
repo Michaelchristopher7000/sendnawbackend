@@ -102,7 +102,7 @@ $body = "<h3>Security Alert</h3>
             <li><strong>User Agent:</strong> $userAgent</li>
          </ul>
          <p>If this wasn't you, please contact support immediately.</p>";
-sendEmail($user['email'], $subject, $body);
+// sendEmail($user['email'], $subject, $body); // Temporarily disabled: SMTP is slowing down logins
 
 // --- Return response ---
 unset($user['password_hash'], $user['pin_hash']);
