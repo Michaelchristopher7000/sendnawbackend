@@ -78,7 +78,9 @@ $stmt->execute([$user['id'], $token, $userAgent, $ip, $deviceName]);
 // --- Get location from IP (using ip-api.com) ---
 $location = 'Unknown';
 if ($ip && $ip !== 'Unknown IP' && !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-    $geo = @file_get_contents("http://ip-api.com/json/{$ip}?fields=status,city,country");
+    // Add a strict 2-second timeout so the login doesn't hang if the API is slow/rate-limited
+    $ctx = stream_context_create(['http' => ['timeout' => 2]]);
+    $geo = @file_get_contents("http://ip-api.com/json/{$ip}?fields=status,city,country", false, $ctx);
     if ($geo !== false) {
         $geoData = json_decode($geo, true);
         if (isset($geoData['status']) && $geoData['status'] === 'success') {
