@@ -9,33 +9,28 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $data     = json_decode(file_get_contents("php://input"), true);
-$phone    = !empty($data['phone']) ? trim($data['phone']) : null;
+$email    = !empty($data['email']) ? trim($data['email']) : null;
 $otp_code = !empty($data['otp'])   ? trim($data['otp'])   : null;
 
-if (!$phone || !$otp_code) {
+if (!$email || !$otp_code) {
     http_response_code(400);
     echo json_encode([
         "success" => false,
-        "message" => "Phone number and OTP code are required"
+        "message" => "Email address and OTP code are required"
     ]);
     exit();
-}
-
-// Add + prefix to match how it was stored in send_otp.php
-if (!str_starts_with($phone, '+')) {
-    $phone = '+' . $phone;
 }
 
 try {
     // Find valid OTP record
     $stmt = $pdo->prepare("
         SELECT * FROM otp_codes
-        WHERE phone = ?
+        WHERE identifier = ?
         AND otp_code = ?
         AND expires_at > NOW()
         LIMIT 1
     ");
-    $stmt->execute([$phone, $otp_code]);
+    $stmt->execute([$email, $otp_code]);
     $record = $stmt->fetch();
 
     if (!$record) {
@@ -48,13 +43,13 @@ try {
     }
 
     // Delete OTP after successful verification
-    $stmt = $pdo->prepare("DELETE FROM otp_codes WHERE phone = ?");
-    $stmt->execute([$phone]);
+    $stmt = $pdo->prepare("DELETE FROM otp_codes WHERE identifier = ?");
+    $stmt->execute([$email]);
 
     http_response_code(200);
     echo json_encode([
         "success" => true,
-        "message" => "Phone number verified successfully"
+        "message" => "Email verified successfully"
     ]);
 
 } catch (PDOException $e) {

@@ -9,6 +9,8 @@ $phone = trim($data['phone'] ?? ''); // already full with country code (e.g., 23
 $email = trim($data['email'] ?? '');
 $password = $data['password'] ?? '';
 $countryCode = $data['country_code'] ?? '+234';
+$accountType = $data['account_type'] ?? 'Personal';
+$defaultCurrency = $data['default_currency'] ?? 'NGN';
 
 if (!$fullName || !$phone || !$email || !$password) {
     echo json_encode(['success' => false, 'message' => 'All fields required']);
@@ -36,8 +38,8 @@ while (true) {
 
 $hashed = password_hash($password, PASSWORD_DEFAULT);
 
-$stmt = $pdo->prepare("INSERT INTO users (full_name, phone, email, password_hash, sendnaw_tag, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
-$success = $stmt->execute([$fullName, $phone, $email, $hashed, $tag]);
+$stmt = $pdo->prepare("INSERT INTO users (full_name, phone, email, password_hash, sendnaw_tag, account_type, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())");
+$success = $stmt->execute([$fullName, $phone, $email, $hashed, $tag, $accountType]);
 
 if ($success) {
     $userId = $pdo->lastInsertId();
@@ -52,16 +54,15 @@ if ($success) {
     $stmt = $pdo->prepare("UPDATE users SET avatar_url = ? WHERE id = ?");
     $stmt->execute([$avatarUrl, $userId]);
 
-    // Create default wallets for NGN, USD, GBP
-    $currencies = ['NGN', 'USD', 'GBP'];
+    // Create default wallets for NGN, USD, GBP, EUR
+    $currencies = ['NGN', 'USD', 'GBP', 'EUR'];
     $stmt = $pdo->prepare("INSERT INTO wallets (user_id, currency_code, balance) VALUES (?, ?, 0)");
     foreach ($currencies as $cur) {
         $stmt->execute([$userId, $cur]);
     }
 
-    // (Optional) Set default currency preferences if columns exist
-    // Most likely they have defaults set in DB, but safe to include:
-    $pdo->prepare("UPDATE users SET default_currency = 'NGN', display_currency = 'NGN' WHERE id = ?")->execute([$userId]);
+    // Set default currency preferences
+    $pdo->prepare("UPDATE users SET default_currency = ?, display_currency = ? WHERE id = ?")->execute([$defaultCurrency, $defaultCurrency, $userId]);
 
     echo json_encode([
         'success' => true,
