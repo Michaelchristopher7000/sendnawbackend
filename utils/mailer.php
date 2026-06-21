@@ -1,7 +1,7 @@
 <?php
 function sendEmail($to, $subject, $body)
 {
-    $apiKey = getenv('BREVO_API_KEY');
+   $apiKey = getenv('BREVO_API_KEY') ?: 'xkeysib-0543fbd770964a45428194e56efbfdd84f9acfc450...';
 
     $data = [
         'sender' => [
