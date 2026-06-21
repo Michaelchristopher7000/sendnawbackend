@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
 require_once '../../config/db.php';
-require_once __DIR__ . '/../../utils/mailer.php';
+require_once __DIR__ . '/../../Backend/utils/mailer.php';
 
 $data = json_decode(file_get_contents('php://input'), true);
 $password = $data['password'] ?? '';
