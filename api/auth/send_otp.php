@@ -44,12 +44,9 @@ echo json_encode([
     "message" => "Verification code sent to " . $email,
 ]);
 
-// Flush response so client receives it NOW
+// Flush response so client receives it NOW (works on Render's PHP-FPM)
 if (function_exists('fastcgi_finish_request')) {
-    fastcgi_finish_request(); // On Render/PHP-FPM, this sends response immediately
-} else {
-    ob_end_flush();
-    flush();
+    fastcgi_finish_request();
 }
 
 // === Send email AFTER responding to client ===
