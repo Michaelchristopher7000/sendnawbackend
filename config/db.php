@@ -23,12 +23,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-define('DB_HOST', 'mysql-23fdb6e0-mikec9613-9a0b.b.aivencloud.com');
-define('DB_PORT', '14322');
-define('DB_NAME', 'defaultdb');
-define('DB_USER', 'avnadmin');
-define('DB_PASS', 'AVNS_OeBeUrDVwOO-MTHlP8p');
-define('FRONTEND_URL', 'https://sendnaw.vercel.app');
+// Load .env file
+$envFile = __DIR__ . '/.env';
+if (file_exists($envFile)) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
+            [$key, $value] = explode('=', $line, 2);
+            putenv(trim($key) . '=' . trim($value));
+        }
+    }
+}
+
+define('DB_HOST', getenv('DB_HOST'));
+define('DB_PORT', getenv('DB_PORT'));
+define('DB_NAME', getenv('DB_NAME'));
+define('DB_USER', getenv('DB_USER'));
+define('DB_PASS', getenv('DB_PASS'));
+define('FRONTEND_URL', getenv('FRONTEND_URL'));
 
 try {
     $pdo = new PDO(

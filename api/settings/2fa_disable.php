@@ -1,9 +1,27 @@
 <?php
-// Headers and auth block (same as above)
+require_once '../../config/db.php';
+require_once 'auth_helper.php';
 
-$userId = $user['id'] ?? null;
-if (empty($userId)) {
-    echo json_encode(['success' => false, 'message' => 'User not authenticated']);
+
+// ─── Helper function (copied here to avoid missing include) ──────────────
+function getUserIdFromToken($pdo) {
+    $headers = getallheaders();
+    $authHeader = $headers['Authorization'] ?? '';
+    $token = '';
+    if (preg_match('/Bearer\s+(\S+)/', $authHeader, $matches)) { // ✅ fixed typo
+        $token = $matches[1];
+    }
+    if (!$token) return null;
+
+    $stmt = $pdo->prepare("SELECT user_id FROM user_tokens WHERE token = ?");
+    $stmt->execute([$token]);
+    $row = $stmt->fetch();
+    return $row ? $row['user_id'] : null;
+}
+
+$userId = getUserIdFromToken($pdo);
+if (!$userId) {
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
 }
 
