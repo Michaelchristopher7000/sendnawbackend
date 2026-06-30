@@ -1,18 +1,15 @@
 <?php
-
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+header('Content-Type: application/json');
 
 require_once 'totp.php';
 require_once '../../config/db.php';
-require_once 'phpqrcode.php';
 
-// ─── Helper function (copied here to avoid missing include) ──────────────
+// ─── Helper function ──────────────────────────────────────────────────────
 function getUserIdFromToken($pdo) {
     $headers = getallheaders();
     $authHeader = $headers['Authorization'] ?? '';
     $token = '';
-    if (preg_match('/Bearer\s+(\S+)/', $authHeader, $matches)) { //  fixed typo
+    if (preg_match('/Bearer\s+(\S+)/', $authHeader, $matches)) {
         $token = $matches[1];
     }
     if (!$token) return null;
@@ -54,16 +51,12 @@ $stmt->execute([$secret, $userId]);
 // Build OTP URL
 $otpUrl = "otpauth://totp/SendNaw:{$email}?secret={$secret}&issuer=SendNaw";
 
-// ✅ Using phpqrcode
-ob_start();
-QRcode::png($otpUrl, null, QR_ECLEVEL_L, 6);
-$qrImageData = ob_get_clean();
-$qrBase64 = base64_encode($qrImageData);
-$qrDataUri = 'data:image/png;base64,' . $qrBase64;
+// Use external API for QR code — phpqrcode requires GD (ImageCreate) which is unavailable on Render
+$qrDataUri = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' . urlencode($otpUrl);
 
 echo json_encode([
     'success' => true,
-    'secret' => $secret,
+    'secret'  => $secret,
     'otp_url' => $otpUrl,
-    'qr_url' => $qrDataUri, 
+    'qr_url'  => $qrDataUri,
 ]);

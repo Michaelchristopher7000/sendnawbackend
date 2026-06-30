@@ -1,14 +1,11 @@
 <?php
-// cors.php – include this at the top of every API endpoint
-header("Content-Type: application/json");
-// Handle preflight OPTIONS request
 header('Content-Type: application/json');
 require_once '../../config/db.php';
 
 $headers = getallheaders();
 $authHeader = $headers['Authorization'] ?? '';
 $token = '';
-if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+if (preg_match('/Bearer\s+(\S+)/', $authHeader, $matches)) {
     $token = $matches[1];
 }
 if (!$token) {
@@ -25,9 +22,10 @@ if (!$row) {
 }
 
 $userId = $row['user_id'];
-$stmt = $pdo->prepare("SELECT id, full_name, email, phone, sendnaw_tag, account_number, 
-       default_currency, display_currency, role, 
-       kyc_tier, kyc_status, dob, address, bvn, nin
+$stmt = $pdo->prepare("SELECT id, full_name, email, phone, sendnaw_tag, account_number,
+       default_currency, display_currency, role, account_type, avatar_url,
+       kyc_tier, kyc_status, dob, address, bvn, nin,
+       two_factor_enabled, (transaction_pin IS NOT NULL) as has_pin
 FROM users
 WHERE id = ?");
 $stmt->execute([$userId]);
