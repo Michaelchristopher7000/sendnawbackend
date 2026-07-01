@@ -41,7 +41,12 @@ if (!move_uploaded_file($_FILES['avatar']['tmp_name'], $targetPath)) {
     exit;
 }
 
-$avatarUrl = 'https://sendnawtechnologies.infinityfree.io/uploads/avatars/' . $fileName;
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$host = $_SERVER['HTTP_HOST'];
+$scriptDir = dirname($_SERVER['SCRIPT_NAME']);
+$basePath = dirname(dirname($scriptDir)) . '/uploads/avatars/';
+$avatarUrl = rtrim($protocol . '://' . $host . $basePath, '/') . '/' . $fileName;
+
 $stmt = $pdo->prepare("UPDATE users SET avatar_url = ? WHERE id = ?");
 $stmt->execute([$avatarUrl, $userId]);
 
