@@ -29,23 +29,13 @@ if (!in_array($mime, $allowed)) {
     exit;
 }
 
-$uploadDir = __DIR__ . '/../../uploads/avatars/';
-if (!file_exists($uploadDir)) mkdir($uploadDir, 0777, true);
-
-$ext = pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION);
-$fileName = 'avatar_' . $userId . '_' . time() . '.' . $ext;
-$targetPath = $uploadDir . $fileName;
-
-if (!move_uploaded_file($_FILES['avatar']['tmp_name'], $targetPath)) {
-    echo json_encode(['success' => false, 'message' => 'Failed to save file']);
+$imageData = file_get_contents($_FILES['avatar']['tmp_name']);
+if ($imageData === false) {
+    echo json_encode(['success' => false, 'message' => 'Failed to read uploaded file']);
     exit;
 }
 
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-$host = $_SERVER['HTTP_HOST'];
-$scriptDir = dirname($_SERVER['SCRIPT_NAME']);
-$basePath = dirname(dirname($scriptDir)) . '/uploads/avatars/';
-$avatarUrl = rtrim($protocol . '://' . $host . $basePath, '/') . '/' . $fileName;
+$avatarUrl = 'data:' . $mime . ';base64,' . base64_encode($imageData);
 
 $stmt = $pdo->prepare("UPDATE users SET avatar_url = ? WHERE id = ?");
 $stmt->execute([$avatarUrl, $userId]);

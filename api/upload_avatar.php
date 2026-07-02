@@ -24,25 +24,15 @@ if (!in_array($file['type'], $allowed)) {
     exit;
 }
 
-// Create the uploads folder if it doesn't exist
-$uploadDir = __DIR__ . '/../uploads/avatars/';
-if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-
-$ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-$filename = 'avatar_' . $user_id . '_' . time() . '.' . $ext;
-$filePath = $uploadDir . $filename;
-
-if (move_uploaded_file($file['tmp_name'], $filePath)) {
-    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'];
-    $scriptDir = dirname($_SERVER['SCRIPT_NAME']);
-    $basePath = dirname($scriptDir) . '/uploads/avatars/';
-    $avatarUrl = rtrim($protocol . '://' . $host . $basePath, '/') . '/' . $filename;
-
-    $stmt = $pdo->prepare("UPDATE users SET avatar_url = ? WHERE id = ?");
-    $stmt->execute([$avatarUrl, $user_id]);
-
-    echo json_encode(['status' => 'success', 'avatar_url' => $avatarUrl]);
-} else {
-    echo json_encode(['status' => 'error', 'message' => 'Failed to save file']);
+$imageData = file_get_contents($file['tmp_name']);
+if ($imageData === false) {
+    echo json_encode(['status' => 'error', 'message' => 'Failed to read uploaded file']);
+    exit;
 }
+
+$avatarUrl = 'data:' . $file['type'] . ';base64,' . base64_encode($imageData);
+
+$stmt = $pdo->prepare("UPDATE users SET avatar_url = ? WHERE id = ?");
+$stmt->execute([$avatarUrl, $user_id]);
+
+echo json_encode(['status' => 'success', 'avatar_url' => $avatarUrl]);

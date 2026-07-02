@@ -102,7 +102,10 @@ $body = "<h3>Security Alert</h3>
             <li><strong>User Agent:</strong> $userAgent</li>
          </ul>
          <p>If this wasn't you, please contact support immediately.</p>";
-// sendEmail($user['email'], $subject, $body); // Temporarily disabled: SMTP is slowing down logins
+if (!empty($user['email']) && filter_var($user['email'], FILTER_VALIDATE_EMAIL)) {
+    $loginEmailSent = sendEmail($user['email'], $subject, $body);
+    error_log('Login alert email to ' . $user['email'] . ': ' . ($loginEmailSent ? 'SENT' : 'FAILED'));
+}
 
 // --- Return response ---
 unset($user['password_hash'], $user['pin_hash']);
@@ -112,4 +115,3 @@ echo json_encode([
     'user' => $user,
     'redirect' => $user['role'] === 'admin' ? '/admin/dashboard' : '/dashboard'
 ]);
-?>

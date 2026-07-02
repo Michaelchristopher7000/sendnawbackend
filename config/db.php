@@ -30,7 +30,12 @@ if (file_exists($envFile)) {
     foreach ($lines as $line) {
         if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
             [$key, $value] = explode('=', $line, 2);
-            putenv(trim($key) . '=' . trim($value));
+            $key = trim($key);
+            $value = trim($value);
+            if ((strlen($value) >= 2) && ((substr($value, 0, 1) === '"' && substr($value, -1) === '"') || (substr($value, 0, 1) === "'" && substr($value, -1) === "'"))) {
+                $value = substr($value, 1, -1);
+            }
+            putenv($key . '=' . $value);
         }
     }
 }
@@ -58,4 +63,3 @@ try {
     ]);
     exit();
 }
-?>
